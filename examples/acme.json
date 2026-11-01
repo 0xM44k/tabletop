@@ -1,0 +1,14 @@
+{
+  "name": "Fictional SaaS company (example)",
+  "assets": [
+    {"id": "web", "name": "Customer web app", "kind": "application", "internet_facing": true, "data": ["customer"], "depends_on": ["db", "sso"]},
+    {"id": "db", "name": "Primary customer database", "kind": "database", "data": ["customer", "billing"], "depends_on": []},
+    {"id": "sso", "name": "Company single sign-on", "kind": "idp", "depends_on": []},
+    {"id": "repo", "name": "Source code repository", "kind": "repo", "depends_on": []},
+    {"id": "pay", "name": "Payment processor", "kind": "vendor", "data": ["billing"], "depends_on": []},
+    {"id": "files", "name": "Shared document storage", "kind": "storage", "data": ["customer"], "depends_on": []}
+  ],
+  "data_classes": [{"id": "customer", "name": "customer personal data"}, {"id": "billing", "name": "billing records"}],
+  "roles": ["Head of engineering", "On-call engineer", "Support lead", "Operations manager", "Outside counsel (contact)"],
+  "controls": ["mfa", "edr", "backups"]
+}

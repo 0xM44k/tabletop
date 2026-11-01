@@ -1,0 +1,110 @@
+{
+  "_comment": "Scenario text is generic incident-response practice written for this tool. It is not mapped to ATT&CK or any standard, and has not been reviewed by an incident-response professional. Placeholders: {primary} {data} {idp} {dependency} {vendor} {storage} {repo}.",
+  "scenarios": [
+    {
+      "id": "ransomware", "title": "Ransomware on {primary}",
+      "summary": "Encrypted files on a core system, spreading to its dependants, with a data-theft threat.",
+      "needs": {"kinds_any": ["server", "database", "service", "endpoint", "application"]},
+      "pick": "most_connected",
+      "objectives": ["Confirm who leads the response and who can isolate systems", "Decide on containment before full information is available", "Test restore capability and communications"],
+      "injects": [
+        {"t": 0, "title": "First report", "text": "A user reports that files on {primary} have been renamed with an unfamiliar extension and a text file demands payment.", "questions": ["Who does the user contact, and how? Is that route staffed right now?", "Who becomes incident lead, and who told them?", "What is the first containment action, and who is allowed to take it?"]},
+        {"t": 10, "title": "Spread", "text": "Monitoring shows the same behaviour on other systems that depend on {primary}: {dependency}.", "questions": ["Who can take {primary} offline, and what does that cost the business?", "What do you preserve before anything is powered off or rebuilt?", "How do you reach the team if the normal chat or email is affected?"]},
+        {"t": 25, "title": "Data theft claim", "text": "The note claims the attackers copied {data} and will publish it in 48 hours.", "questions": ["Who decides whether this is reportable, and to whom, by when?", "How would you check whether the claim is true?", "Who talks to affected people, and what do they say?"]},
+        {"t": 40, "title": "Backups", "text": "The newest usable backup of {primary} is three days old, and the backup system shows jobs that nobody remembers deleting.", "questions": ["Who can confirm the backups are intact, and how fast?", "What is the maximum outage the business can accept, and who agreed that?", "What would you do if no clean backup exists?"]},
+        {"t": 60, "title": "Press", "text": "A journalist emails the general contact address asking for comment on a 'cyber incident'.", "questions": ["Who speaks for the organisation? Is there a holding statement?", "Who tells customers, partners and staff, in what order?"]}
+      ],
+      "control_probes": {
+        "present": {"edr": "Your model lists EDR. Which alerts should have fired already, and who sees them?", "siem": "Your model lists a SIEM. What would you search for in the first hour?", "immutable-backups": "Your model lists immutable backups. When did anyone last restore from them?"},
+        "missing": {"immutable-backups": "Your model lists no immutable or offline backups. What is the fallback if the backup system is also encrypted?", "edr": "Your model lists no endpoint detection. How would you know which systems are affected?", "backups": "Your model lists no backups at all. What is the recovery plan?"}
+      }
+    },
+    {
+      "id": "identity", "title": "Identity provider compromise via {idp}",
+      "summary": "Stolen credentials and MFA fatigue lead to an administrator account being used.",
+      "needs": {"kinds_any": ["idp", "sso", "directory", "email"]},
+      "pick": "kind:idp,sso,directory,email",
+      "objectives": ["Test how fast sign-in abuse is noticed", "Decide who can revoke sessions and disable accounts", "Test communication when email may be compromised"],
+      "injects": [
+        {"t": 0, "title": "Odd prompts", "text": "A staff member reports a stream of unexpected sign-in approval prompts for their {idp} account overnight, and says they approved one to make it stop.", "questions": ["Who is told, and what do they do in the next five minutes?", "What can you see in the logs for this account, and who can look?"]},
+        {"t": 10, "title": "Mailbox rule", "text": "A forwarding rule was created on that mailbox sending messages containing 'invoice' to an outside address.", "questions": ["Who can disable the account and revoke sessions and tokens? Is that the same as resetting the password?", "Which other accounts did this person have access to?"]},
+        {"t": 25, "title": "Privilege change", "text": "The audit log shows the account was used to grant an administrator role to a second, unfamiliar account.", "questions": ["Who can reverse role changes, and who reviews what that account did?", "Do you trust the other administrators' accounts? How would you check?"]},
+        {"t": 40, "title": "Access to data", "text": "The unfamiliar account accessed systems holding {data}.", "questions": ["How do you establish what was read versus changed?", "At what point is this a reportable data incident, and who decides?"]},
+        {"t": 55, "title": "Communications", "text": "Staff start receiving convincing messages that appear to come from a colleague's real address.", "questions": ["How do you warn staff if email is untrusted?", "Who approves the wording?"]}
+      ],
+      "control_probes": {"present": {"mfa": "Your model lists MFA. Which method is used, and is it resistant to prompt fatigue?"}, "missing": {"mfa": "Your model lists no MFA. What stops a stolen password being enough?", "siem": "Your model lists no central logging. Where would you look for sign-in history?"}}
+    },
+    {
+      "id": "web-exfil", "title": "Exploited internet-facing service: {primary}",
+      "summary": "A public service is abused to read data it should not expose.",
+      "needs": {"internet_facing": true, "has_data": true},
+      "pick": "internet_facing_with_data",
+      "objectives": ["Test detection of unusual access patterns", "Decide whether to take a revenue-generating service down", "Test evidence preservation and disclosure decisions"],
+      "injects": [
+        {"t": 0, "title": "Anomaly", "text": "Monitoring or a customer report shows {primary} returning records belonging to other accounts when a particular request is repeated.", "questions": ["Who owns {primary} and can say whether this is a bug or an attack?", "Who is on call, and who can approve a change right now?"]},
+        {"t": 15, "title": "Scale", "text": "Logs show one source making tens of thousands of such requests over six hours.", "questions": ["What would you block, and who can do it? What does blocking break?", "Which logs do you need, and how long do you keep them?"]},
+        {"t": 30, "title": "What was exposed", "text": "Developers say the affected endpoint can return {data}.", "questions": ["How do you work out which records were retrieved?", "Who decides on notification, and what information do they need?"]},
+        {"t": 45, "title": "Take it down?", "text": "A senior manager asks whether {primary} can stay online during the investigation because of contractual commitments.", "questions": ["Who has the authority to take it offline? What is the trade-off, and who accepts the risk?"]},
+        {"t": 60, "title": "Fix and follow-up", "text": "A patch is ready but untested.", "questions": ["What testing is enough before deploying under pressure?", "How do you check that the fix works and the abuse has stopped?"]}
+      ],
+      "control_probes": {"present": {"waf": "Your model lists a WAF. What rule would you add, and who can change it?"}, "missing": {"waf": "Your model lists no WAF or rate limiting. What is your fastest way to slow an abusive client?", "siem": "Your model lists no central logging. Where are {primary}'s access logs, and who can read them?"}}
+    },
+    {
+      "id": "secret-leak", "title": "Credential published in {repo}",
+      "summary": "A live access key is found in a public repository.",
+      "needs": {"kinds_any": ["repo", "ci", "pipeline"]},
+      "pick": "kind:repo,ci,pipeline",
+      "objectives": ["Test revocation speed", "Test how you work out what a key could reach", "Check ownership of credentials"],
+      "injects": [
+        {"t": 0, "title": "Notice", "text": "A researcher emails you: an access key for one of your systems is visible in a public commit in {repo}.", "questions": ["Where does an email like this go, and who reads it?", "Who verifies it, and who can revoke the key?"]},
+        {"t": 10, "title": "Reach", "text": "The key belongs to a service account. Nobody is sure what it can access.", "questions": ["Where is the list of what each credential can reach? Who owns it?", "Do you revoke first or investigate first? Who decides?"]},
+        {"t": 20, "title": "Usage", "text": "Logs show the key was used from an unfamiliar network yesterday.", "questions": ["What did it touch? How do you find out?", "Does {data} sit behind it?"]},
+        {"t": 35, "title": "History", "text": "The key has been in the repository history for four months.", "questions": ["Removing it from history is not enough: what else must happen?", "What other secrets might be in that history?"]},
+        {"t": 50, "title": "Prevention", "text": "Leadership asks how this will be prevented.", "questions": ["What single change would have the most effect, and who owns it?"]}
+      ],
+      "control_probes": {"present": {}, "missing": {"secrets-scanning": "Your model lists no secret scanning. How would you have found this yourself?"}}
+    },
+    {
+      "id": "vendor", "title": "Compromise at supplier {vendor}",
+      "summary": "A supplier announces a breach that may include your data or access.",
+      "needs": {"kinds_any": ["vendor", "supplier", "saas", "dependency"]},
+      "pick": "kind:vendor,supplier,saas,dependency",
+      "objectives": ["Test supplier inventory and contacts", "Decide what to disconnect and what to keep running", "Practise communicating uncertainty"],
+      "injects": [
+        {"t": 0, "title": "Notice", "text": "{vendor} emails customers: 'we are investigating unauthorised access to part of our environment'. No details are given.", "questions": ["Who receives this email, and does it reach anyone who can act on it?", "What do you know about what {vendor} holds or can reach?"]},
+        {"t": 15, "title": "Integration", "text": "{vendor} has an integration token that can read {data}.", "questions": ["Who can revoke it, and what breaks if you do?", "Is there any alternative route while it is revoked?"]},
+        {"t": 30, "title": "Silence", "text": "Two hours later {vendor} has sent no further information.", "questions": ["Who is your named contact there, and have you ever used the channel?", "What does your contract say about notification?"]},
+        {"t": 45, "title": "Customers", "text": "A customer asks whether you are affected.", "questions": ["What can you honestly say right now?", "Who approves the wording?"]}
+      ],
+      "control_probes": {"present": {}, "missing": {"vendor-inventory": "Your model lists no supplier inventory. How would you list every supplier with access to your data in the next hour?"}}
+    },
+    {
+      "id": "storage-exposure", "title": "Public storage exposure: {storage}",
+      "summary": "A storage location holding sensitive data is found readable by anyone.",
+      "needs": {"kinds_any": ["storage", "bucket", "share"]},
+      "pick": "kind:storage,bucket,share",
+      "objectives": ["Test how exposure is found and who owns the fix", "Work out what was accessed", "Decide on disclosure"],
+      "injects": [
+        {"t": 0, "title": "Report", "text": "A security researcher tells you {storage} is readable without signing in, and that it contains files that look like {data}.", "questions": ["Who verifies this, and who can change the access setting?", "Do you change it immediately or capture evidence first?"]},
+        {"t": 15, "title": "Duration", "text": "The configuration change history shows it has been public for eleven weeks.", "questions": ["What access logs exist, and are they switched on for this location?", "What do you conclude if there are none?"]},
+        {"t": 30, "title": "Content", "text": "A sample shows the files include customer identifiers.", "questions": ["Who decides whether this is a reportable incident? What do they need from you?"]},
+        {"t": 45, "title": "Fix", "text": "The owner of {storage} says it was made public for a temporary project.", "questions": ["How will you find other locations like this?", "Who owns the check, and how often does it run?"]}
+      ],
+      "control_probes": {"present": {}, "missing": {"siem": "Your model lists no central logging. Where would storage access logs live?"}}
+    },
+    {
+      "id": "ddos", "title": "Sustained traffic flood against {primary}",
+      "summary": "A public service becomes unreachable under a flood of requests, possibly with an extortion demand.",
+      "needs": {"internet_facing": true},
+      "pick": "internet_facing",
+      "objectives": ["Test who can engage upstream providers", "Decide on trade-offs between availability and cost", "Practise status communication"],
+      "injects": [
+        {"t": 0, "title": "Slow then down", "text": "{primary} slows down, then times out for most users. Traffic graphs show a sharp rise.", "questions": ["Who is alerted, and how do they tell a flood from a bug or a popular day?", "Who can contact your hosting or network provider, and do they have the number?"]},
+        {"t": 15, "title": "Demand", "text": "An email demands payment to stop the traffic.", "questions": ["Who decides how to treat the demand? Is there a policy?", "What do you preserve from the email?"]},
+        {"t": 30, "title": "Mitigation cost", "text": "The provider offers emergency protection at a high daily rate.", "questions": ["Who can approve unplanned spend, and how quickly?", "How do you know when it is safe to stop paying?"]},
+        {"t": 50, "title": "Status", "text": "Customers are asking on social media whether the service is down.", "questions": ["Who posts updates, where, and how often?", "What do you say when you do not yet know the cause?"]}
+      ],
+      "control_probes": {"present": {"cdn": "Your model lists a CDN. Is the origin address still reachable directly?"}, "missing": {"cdn": "Your model lists no CDN or traffic scrubbing. What is your fallback?"}}
+    }
+  ]
+}

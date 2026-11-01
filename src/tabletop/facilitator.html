@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>__TITLE__</title>
+<style>
+:root,[data-theme="dark"]{--bg:#0c0f11;--surface:#14181b;--raised:#1c2227;--line:#6b787f;--ink:#ece8df;--muted:#a3aab0;--signal:#e8a33d;--on-signal:#14100a;--trace:#6cc4b8;--err:#ff8a5c;--hair:rgba(107,120,127,.4)}
+[data-theme="light"]{--bg:#f3efe6;--surface:#ebe6da;--raised:#fbf9f4;--line:#6b665c;--ink:#1a1d1f;--muted:#4d5256;--signal:#8a5200;--on-signal:#fbf9f4;--trace:#0b6b61;--err:#a83a00;--hair:rgba(107,102,92,.4)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.6 "Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+h1,h2,h3{font-family:"Newsreader",Georgia,serif;font-weight:400;margin:0}
+.wrap{max-width:900px;margin:0 auto;padding:0 16px 96px}
+header{padding:32px 0 16px;border-bottom:1px solid var(--hair)}
+h1{font-size:clamp(32px,6vw,52px);line-height:1.05}
+.meta,.small{font:13px/20px "JetBrains Mono",ui-monospace,Consolas,monospace;letter-spacing:.04em;color:var(--muted)}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+button{font:500 15px/20px inherit;font-family:inherit;min-height:44px;min-width:44px;padding:10px 16px;border-radius:4px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+button:hover{background:var(--raised)}
+button.primary{background:var(--signal);color:var(--on-signal);border-color:var(--signal)}
+.bar{position:sticky;top:0;background:var(--bg);display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 0;border-bottom:1px solid var(--hair);z-index:2}
+.clock{font:600 22px/1 "JetBrains Mono",ui-monospace,Consolas,monospace;min-width:6ch}
+section{padding-top:32px}
+h2{font-size:28px;line-height:1.2;margin-bottom:8px}
+ul{padding-left:20px}
+.card{background:var(--surface);border:1px solid var(--hair);border-radius:4px;padding:24px;margin-top:16px}
+.card.hidden{display:none}
+.tag{font:600 13px/20px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.06em;color:var(--signal);margin:0}
+label{display:block;font-weight:600;margin-top:12px}
+textarea,input[type=text]{width:100%;font:inherit;color:var(--ink);background:var(--raised);border:1px solid var(--line);border-radius:4px;padding:8px}
+textarea{min-height:72px;resize:vertical}
+.q{margin:8px 0 0}
+.row{display:grid;grid-template-columns:1fr;gap:8px}
+@media(min-width:700px){.row{grid-template-columns:2fr 1fr 1fr}}
+table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid var(--hair);padding:8px;text-align:left;vertical-align:top}
+.scroll{overflow-x:auto;max-width:100%}.scroll table{min-width:34rem}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.card{animation:in .15s ease-out}@keyframes in{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media print{.scroll{overflow:visible}.bar,button{display:none}.card.hidden{display:block}body{background:#fff;color:#000}.card{break-inside:avoid;border-color:#999}textarea{border-color:#999;background:#fff;color:#000}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header><p class="meta" id="meta"></p><h1 id="title"></h1><p id="summary"></p></header>
+<div class="bar" role="toolbar" aria-label="Exercise controls">
+<span class="clock" id="clock" aria-label="Elapsed exercise time" role="timer">00:00</span>
+<button type="button" id="start" class="primary">Start clock</button>
+<button type="button" id="next">Reveal next inject</button>
+<button type="button" id="export">Download review (Markdown)</button>
+<button type="button" id="theme" aria-pressed="false">Light theme</button>
+<button type="button" id="clear">Clear saved notes</button>
+<span class="small" id="status" role="status" aria-live="polite"></span>
+</div>
+<section aria-labelledby="h-obj"><h2 id="h-obj">Objectives</h2><ul id="objectives"></ul>
+<h2 style="margin-top:24px" id="h-roles">Roles in the room</h2><ul id="roles"></ul><p class="small" id="rolesnote"></p></section>
+<section aria-labelledby="h-fac"><h2 id="h-fac">Facilitator guidance</h2>
+<ul><li>Act as referee, not commander. Ask the questions; do not supply the answers.</li><li>Keep it blameless. Record every gap, decision and owner.</li><li>Reveal one inject at a time and let the room finish before moving on.</li><li>Nothing here is sent anywhere. Notes stay in this page (and in this browser if storage is available); download the review before closing.</li></ul></section>
+<section aria-labelledby="h-inj"><h2 id="h-inj">Injects</h2><div id="injects"></div></section>
+<section aria-labelledby="h-gap"><h2 id="h-gap">Gaps and actions</h2>
+<form id="gapform" class="card" style="margin-top:8px"><div class="row"><div><label for="g-title">Gap found</label><input type="text" id="g-title" required></div><div><label for="g-owner">Owner</label><input type="text" id="g-owner"></div><div><label for="g-due">Due</label><input type="text" id="g-due" placeholder="e.g. 2026-12-01"></div></div><p style="margin-bottom:0"><button type="submit">Add to list</button></p></form>
+<table id="gaps"><caption class="sr">Gaps and actions</caption><thead><tr><th scope="col">Gap</th><th scope="col">Owner</th><th scope="col">Due</th><th scope="col"><span class="sr">Remove</span></th></tr></thead><tbody></tbody></table></section>
+<section aria-labelledby="h-sum"><h2 id="h-sum">After-action summary</h2><p class="small">Built from the notes, decisions, gaps and reveal times recorded on this page. It counts what was written down; it does not score the team.</p><div id="summary-body"></div></section>
+</main>
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function(){"use strict";
+var D=JSON.parse(document.getElementById("data").textContent);
+var KEY="tabletop:"+D.id+":"+D.model;
+var S={revealed:0,notes:{},decisions:{},gaps:[],elapsed:0,revealedAt:{}};
+try{var saved=JSON.parse(localStorage.getItem(KEY)||"null");if(saved&&typeof saved==="object")S=Object.assign(S,saved);}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function h(t,p,k){var e=document.createElement(t);if(p)Object.keys(p).forEach(function(a){if(a==="text")e.textContent=p[a];else e.setAttribute(a,p[a]);});(k||[]).forEach(function(c){e.appendChild(c);});return e;}
+var $=function(id){return document.getElementById(id);};
+$("meta").textContent="System: "+D.model;$("title").textContent=D.title;$("summary").textContent=D.summary;document.title=D.title;
+D.objectives.forEach(function(o){$("objectives").appendChild(h("li",{text:o}));});
+D.roles.forEach(function(o){$("roles").appendChild(h("li",{text:o}));});
+if(D.roles_defaulted)$("rolesnote").textContent="Your model listed no roles, so these are defaults. Replace them with real names.";
+function fmt(s){var m=Math.floor(s/60),x=s%60;return (m<10?"0":"")+m+":"+(x<10?"0":"")+x;}
+var injectsEl=$("injects"),cards=[];
+D.injects.forEach(function(inj,i){
+ var qs=h("div");inj.questions.forEach(function(q,j){qs.appendChild(h("p",{"class":"q",text:q}));});
+ var nid="n"+i,did="d"+i;
+ var nt=h("textarea",{id:nid});nt.value=S.notes[i]||"";nt.addEventListener("input",function(){S.notes[i]=nt.value;save();renderSummary();});
+ var dt=h("textarea",{id:did});dt.value=S.decisions[i]||"";dt.addEventListener("input",function(){S.decisions[i]=dt.value;save();renderSummary();});
+ var card=h("article",{"class":"card hidden","aria-labelledby":"t"+i},[h("p",{"class":"tag",text:"INJECT "+inj.n+" · about T+"+inj.t+" min"}),h("h3",{id:"t"+i,text:inj.title}),h("p",{text:inj.text}),qs,h("label",{"for":nid,text:"Notes"}),nt,h("label",{"for":did,text:"Decision, owner and time"}),dt]);
+ cards.push(card);injectsEl.appendChild(card);});
+function showCards(){cards.forEach(function(c,i){c.classList.toggle("hidden",i>=S.revealed);});$("next").disabled=S.revealed>=cards.length;$("status").textContent=S.revealed+" of "+cards.length+" injects revealed";renderSummary();}
+$("next").addEventListener("click",function(){if(S.revealed<cards.length){S.revealed++;S.revealedAt[S.revealed-1]=S.elapsed;showCards();save();var c=cards[S.revealed-1];c.scrollIntoView({block:"start"});c.querySelector("h3").setAttribute("tabindex","-1");c.querySelector("h3").focus();}});
+var timer=null;
+function tick(){S.elapsed++;$("clock").textContent=fmt(S.elapsed);if(S.elapsed%10===0)save();}
+$("clock").textContent=fmt(S.elapsed);
+$("start").addEventListener("click",function(){if(timer){clearInterval(timer);timer=null;$("start").textContent="Resume clock";save();}else{timer=setInterval(tick,1000);$("start").textContent="Pause clock";}});
+document.addEventListener("visibilitychange",function(){});
+function renderGaps(){var tb=document.querySelector("#gaps tbody");while(tb.firstChild)tb.removeChild(tb.firstChild);S.gaps.forEach(function(g,i){var b=h("button",{type:"button","aria-label":"Remove gap: "+g.title,text:"Remove"});b.addEventListener("click",function(){S.gaps.splice(i,1);save();renderGaps();});tb.appendChild(h("tr",null,[h("td",{text:g.title}),h("td",{text:g.owner}),h("td",{text:g.due}),h("td",null,[b])]));});renderSummary();}
+$("gapform").addEventListener("submit",function(e){e.preventDefault();var t=$("g-title").value.trim();if(!t)return;S.gaps.push({title:t,owner:$("g-owner").value.trim(),due:$("g-due").value.trim()});$("gapform").reset();save();renderGaps();$("g-title").focus();});
+function trim(v){return (v||"").trim();}
+function summary(){
+ var rows=[],noDecision=[],i,owners={},unassigned=0,noDue=0;
+ for(i=0;i<S.revealed&&i<D.injects.length;i++){
+  var at=S.revealedAt[i],next=(i+1<S.revealed)?S.revealedAt[i+1]:S.elapsed;
+  var timed=typeof at==="number"&&typeof next==="number"&&S.elapsed>0;
+  var inj=D.injects[i],hasDecision=!!trim(S.decisions[i]);
+  rows.push({n:inj.n,title:inj.title,planned:inj.t,at:timed?at:null,spent:timed?Math.max(0,next-at):null,notes:!!trim(S.notes[i]),decision:hasDecision});
+  if(!hasDecision)noDecision.push(inj.n+". "+inj.title);
+ }
+ S.gaps.forEach(function(g){var o=trim(g.owner);if(!o)unassigned++;else{var k=o.toLowerCase();owners[k]=owners[k]||{name:o,count:0};owners[k].count++;}if(!trim(g.due))noDue++;});
+ var ownerList=Object.keys(owners).map(function(k){return owners[k];}).sort(function(a,b){return a.name<b.name?-1:a.name>b.name?1:0;});
+ return {elapsed:S.elapsed,revealed:S.revealed,total:D.injects.length,rows:rows,noDecision:noDecision,gaps:S.gaps.length,unassigned:unassigned,noDue:noDue,owners:ownerList};
+}
+function summaryLines(s){
+ var o=["Injects revealed: "+s.revealed+" of "+s.total,
+  "Injects with a decision recorded: "+(s.revealed-s.noDecision.length)+" of "+s.revealed+(s.noDecision.length?" (no decision recorded for: "+s.noDecision.join("; ")+")":""),
+  "Gaps recorded: "+s.gaps+(s.gaps?" ("+s.unassigned+" without an owner, "+s.noDue+" without a due date)":"")];
+ if(s.owners.length)o.push("Gaps by owner: "+s.owners.map(function(x){return x.name+" "+x.count;}).join("; "));
+ o.push("Times come from the exercise clock. If it was not started or was paused, they understate real time.");
+ return o;
+}
+function timeCell(v){return v===null?"not timed":fmt(v);}
+function renderSummary(){
+ var box=$("summary-body");if(!box)return;var s=summary();
+ while(box.firstChild)box.removeChild(box.firstChild);
+ var ul=h("ul");summaryLines(s).forEach(function(t){ul.appendChild(h("li",{text:t}));});box.appendChild(ul);
+ if(s.rows.length){
+  var head=h("tr",null,["Inject","Planned","Revealed at","Time in inject","Notes","Decision"].map(function(t){return h("th",{scope:"col",text:t});}));
+  var tb=h("tbody");s.rows.forEach(function(r){tb.appendChild(h("tr",null,[h("td",{text:r.n+". "+r.title}),h("td",{text:"T+"+r.planned+" min"}),h("td",{text:timeCell(r.at)}),h("td",{text:timeCell(r.spent)}),h("td",{text:r.notes?"yes":"none"}),h("td",{text:r.decision?"yes":"none"})]));});
+  box.appendChild(h("div",{"class":"scroll",role:"region","aria-label":"Per-inject timing and records (scrolls sideways on narrow screens)",tabindex:"0"},[h("table",null,[h("caption",{"class":"sr",text:"Per-inject timing and records"}),h("thead",null,[head]),tb])]));
+ }
+}
+function summaryMd(){
+ var s=summary(),o=["## After-action summary",""];
+ summaryLines(s).forEach(function(t){o.push("- "+t.replace(/\|/g,"/"));});o.push("");
+ if(s.rows.length){o.push("| # | Inject | Planned | Revealed at | Time in inject | Notes | Decision |","| --- | --- | --- | --- | --- | --- | --- |");
+  s.rows.forEach(function(r){o.push("| "+r.n+" | "+r.title.replace(/\|/g,"/")+" | T+"+r.planned+" min | "+timeCell(r.at)+" | "+timeCell(r.spent)+" | "+(r.notes?"yes":"none")+" | "+(r.decision?"yes":"none")+" |");});o.push("");}
+ return o;
+}
+function md(){var o=["# Tabletop review: "+D.title,"","System: "+D.model,"Exercise time recorded: "+fmt(S.elapsed),""].concat(summaryMd(),["## Injects",""]);
+ D.injects.forEach(function(inj,i){if(i>=S.revealed)return;o.push("### "+inj.n+". "+inj.title,"",inj.text,"","Notes: "+(S.notes[i]||"(none)"),"","Decision / owner / time: "+(S.decisions[i]||"(none)"),"");});
+ o.push("## Gaps and actions","");if(!S.gaps.length)o.push("(none recorded)");else{o.push("| Gap | Owner | Due |","| --- | --- | --- |");S.gaps.forEach(function(g){o.push("| "+g.title.replace(/\|/g,"/")+" | "+(g.owner||"unassigned").replace(/\|/g,"/")+" | "+(g.due||"-").replace(/\|/g,"/")+" |");});}
+ return o.join("\n")+"\n";}
+$("export").addEventListener("click",function(){var blob=new Blob([md()],{type:"text/markdown"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="tabletop-review.md";document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(a.href);},1000);});
+$("theme").addEventListener("click",function(){var l=document.documentElement.getAttribute("data-theme")!=="light";document.documentElement.setAttribute("data-theme",l?"light":"dark");$("theme").setAttribute("aria-pressed",String(l));$("theme").textContent=l?"Dark theme":"Light theme";});
+$("clear").addEventListener("click",function(){if(!confirm("Delete all notes, decisions and gaps saved in this browser for this exercise? Download the review first if you need it."))return;try{localStorage.removeItem(KEY);}catch(e){}S={revealed:0,notes:{},decisions:{},gaps:[],elapsed:0,revealedAt:{}};location.reload();});
+showCards();renderGaps();window.__tabletop={md:md,summary:summary,state:function(){return S;}};
+})();
+</script>
+</body>
+</html>
